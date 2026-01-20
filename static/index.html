@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Image Enhancement (Pro)</title>
+    <title>RIVAL - Hybrid Media Enhancement</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/styles.css">
 </head>
@@ -13,87 +13,132 @@
         
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                 Dark Image Enhancement
+                 RIVAL Enhancement Engine
             </h1>
             <p class="text-lg text-gray-600">
-                
+                Zero-Shot Low Light Enhancement for Images & Video
             </p>
         </header>
 
-        <div class="bg-white rounded-lg shadow-xl p-6 mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 border border-gray-200">
-            <div class="flex-1">
-                <label for="imageUploader" class="block text-sm font-medium text-gray-700 mb-2">Upload your dark image:</label>
-                <input 
-                    type="file" 
-                    id="imageUploader" 
-                    accept="image/*"
-                    class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 transition"
-                >
+        <div class="flex justify-center mb-6">
+            <div class="bg-white rounded-lg shadow p-1 flex">
+                <button id="tab-image" class="px-6 py-2 rounded-md font-semibold text-sm transition bg-indigo-600 text-white shadow-sm">
+                    Image Mode
+                </button>
+                <button id="tab-video" class="px-6 py-2 rounded-md font-semibold text-sm transition text-gray-600 hover:bg-gray-100">
+                    Video Mode
+                </button>
             </div>
-            <button 
-                id="enhanceButton"
-                class="w-full md:w-auto px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                disabled
-            >
-                <svg id="button-spinner" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span id="button-text">Enhance Image</span>
-            </button>
         </div>
+
+        <section id="section-image">
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 border border-gray-200">
+                <div class="flex-1">
+                    <label for="imageUploader" class="block text-sm font-medium text-gray-700 mb-2">Upload dark image:</label>
+                    <input 
+                        type="file" 
+                        id="imageUploader" 
+                        accept="image/*"
+                        class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 transition"
+                    >
+                </div>
+                <button 
+                    id="enhanceButton"
+                    class="w-full md:w-auto px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled
+                >
+                    <svg id="button-spinner" class="animate-spin -ml-1 mr-2 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span id="button-text">Enhance Image</span>
+                </button>
+            </div>
+
+            <div id="viewer-area" class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 hidden">
+                <div class="image-box">
+                    <h2 class="image-title">Original Image</h2>
+                    <div class="image-well">
+                        <canvas id="originalCanvas" class="rounded-md"></canvas>
+                        <p id="originalMessage" class="message-text">Upload an image to start</p>
+                    </div>
+                </div>
+
+                <div class="image-box">
+                    <h2 id="enhanced-title" class="image-title">Enhanced</h2>
+                    <div class="image-well">
+                        <canvas id="enhancedCanvas" class="rounded-md"></canvas>
+                        <p id="enhancedMessage" class="message-text">Enhanced image will appear here</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="output-selector" class="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4 hidden">
+                <span class="text-lg font-medium text-gray-700">Select Strength:</span>
+                <div class="flex gap-2">
+                    <button id="btn-1x" class="output-btn active">1x Pass</button>
+                    <button id="btn-2x" class="output-btn">2x Passes</button>
+                    <button id="btn-3x" class="output-btn">3x Passes</button>
+                </div>
+            </div>
+            
+            <div id="brightness-controls" class="mt-4 flex flex-wrap justify-center items-center gap-4 hidden">
+                <span class="text-lg font-medium text-gray-700">Adjust (1x Pass):</span>
+                <button id="btn-brighten" class="px-4 py-2 rounded-md font-semibold text-sm bg-amber-500 text-white hover:bg-amber-600 transition disabled:opacity-50">
+                    Brightness (+25%)
+                </button>
+                <button id="btn-darken" class="px-4 py-2 rounded-md font-semibold text-sm bg-sky-600 text-white hover:bg-sky-700 transition disabled:opacity-50">
+                    Brightness (-25%)
+                </button>
+            </div>
+        </section>
+
+        <section id="section-video" class="hidden">
+            <div class="bg-white rounded-lg shadow-xl p-6 mb-8 border border-gray-200">
+                <div class="flex flex-col md:flex-row gap-4 items-end">
+                    <div class="flex-1 w-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Video (MP4/AVI):</label>
+                        <input 
+                            type="file" 
+                            id="videoUploader" 
+                            accept="video/*" 
+                            class="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 transition"
+                        >
+                    </div>
+                    <button 
+                        id="enhanceVideoButton" 
+                        class="w-full md:w-auto px-8 py-2.5 bg-emerald-600 text-white font-bold rounded-lg shadow-lg hover:bg-emerald-700 disabled:opacity-50 transition" 
+                        disabled
+                    >
+                        Process Video
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">*Uses Smart Interpolation (Every 4th frame) for optimized speed.</p>
+            </div>
+
+            <div id="video-result-area" class="hidden bg-white rounded-lg shadow-xl p-6 flex flex-col items-center">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">Enhanced Video Result</h2>
+                <video id="resultVideo" controls class="w-full max-w-4xl rounded-lg shadow-md bg-black mb-4">
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <a id="downloadVideoLink" href="#" download class="px-6 py-2 bg-gray-800 text-white rounded hover:bg-gray-900 transition">
+                    Download Enhanced Video
+                </a>
+            </div>
+        </section>
 
         <div id="loading-spinner" class="text-center p-16 hidden">
             <div role="status">
                 <svg class="inline w-12 h-12 text-gray-500 animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    </svg>
-                <span class="block mt-4 text-lg text-gray-600">Enhancing image, please wait...</span>
+                    <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                    <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2741 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                </svg>
+                <span id="loading-text" class="block mt-4 text-lg text-gray-600">Enhancing media, please wait...</span>
             </div>
         </div>
 
-        <div id="viewer-area" class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 hidden">
-            <div class="image-box">
-                <h2 class="image-title">Original Image</h2>
-                <div class="image-well">
-                    <canvas id="originalCanvas" class="rounded-md"></canvas>
-                    <p id="originalMessage" class="message-text">Upload an image to start</p>
-                </div>
-            </div>
-
-            <div class="image-box">
-                <h2 id="enhanced-title" class="image-title">Enhanced</h2>
-                <div class="image-well">
-                    <canvas id="enhancedCanvas" class="rounded-md"></canvas>
-                    <p id="enhancedMessage" class="message-text">Enhanced image will appear here</p>
-                </div>
-            </div>
-        </div>
-
-        <div id="output-selector" class="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4 hidden">
-            <span class="text-lg font-medium text-gray-700">Select Enhancement Strength:</span>
-            <div class="flex gap-2">
-                <button id="btn-1x" class="output-btn active">1x Pass</button>
-                <button id="btn-2x" class="output-btn">2x Passes</button>
-                <button id="btn-3x" class="output-btn">3x Passes</button>
-            </div>
-        </div>
-        
-        <div id="brightness-controls" class="mt-4 flex flex-wrap justify-center items-center gap-4 hidden">
-            <span class="text-lg font-medium text-gray-700">For 1x Pass Only:</span>
-            <button 
-                id="btn-brighten"
-                class="px-4 py-2 rounded-md font-semibold text-sm bg-amber-500 text-white hover:bg-amber-600 transition disabled:opacity-50"
-            >
-                Increase Brightness (+25%)
-            </button>
-            <button 
-                id="btn-darken"
-                class="px-4 py-2 rounded-md font-semibold text-sm bg-sky-600 text-white hover:bg-sky-700 transition disabled:opacity-50"
-            >
-                Decrease Brightness (-25%)
-            </button>
-        </div>
-        </div>
+    </div>
 
     <div id="modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 hidden z-50">
         <img id="modalImage" src="" alt="Zoomed Image" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg">

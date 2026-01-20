@@ -1,72 +1,58 @@
-/* Custom font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
 body {
     font-family: 'Inter', sans-serif;
 }
 
-/* --- New Component Styles --- */
-
-/* Style for the image container boxes */
 .image-box {
-    /* Changed from bg-slate-800 */
     @apply bg-white rounded-lg p-4 shadow-lg border border-gray-200 flex flex-col; 
 }
 
 .image-title {
-    /* Changed from text-white */
     @apply text-lg font-semibold text-gray-800 mb-3 text-center;
 }
 
-/* Well for the canvas/message */
 .image-well {
-    /* Changed from bg-slate-800, border-slate-600 */
     @apply flex-1 flex items-center justify-center bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg min-h-[300px] p-2;
-    overflow: hidden; /* Ensure canvas fits */
+    overflow: hidden;
 }
 
 .message-text {
     @apply text-gray-500 text-center;
 }
 
-/* Canvas display */
 canvas {
     max-width: 100%;
     height: auto;
-    display: none; /* Hide until ready */
+    display: none;
 }
 
-/* Style for the output selector buttons */
 .output-btn {
-    /* Changed from bg-slate-700, text-gray-300, hover:bg-slate-600 */
     @apply px-4 py-2 rounded-md font-semibold text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 transition;
 }
 
-/* 'active' class will be toggled by JS */
 .output-btn.active {
     @apply bg-indigo-600 text-white;
 }
 
-/* --- Canvas Zoom/Modal Logic (Unchanged) --- */
-
-/* Styles for canvas click-to-zoom */
 #originalCanvas, #enhancedCanvas {
     cursor: not-allowed;
 }
-/* When an image is loaded, it gets the 'ready' class */
+
 #originalCanvas.ready, #enhancedCanvas.ready {
     cursor: zoom-in;
     transition: transform 0.2s ease;
-    display: block; /* Show the canvas */
+    display: block;
 }
+
 #originalCanvas.ready:hover, #enhancedCanvas.ready:hover {
     transform: scale(1.02);
 }
 
-/* Style for modal close button */
 #closeModal {
     transition: transform 0.2s ease;
 }
+
 #closeModal:hover {
     transform: scale(1.1);
 }

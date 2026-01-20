@@ -1,56 +1,61 @@
-// --- 0. Global Settings ---
-const MAX_DISPLAY_HEIGHT = 450; // Max height for canvas previews
+const MAX_DISPLAY_HEIGHT = 450; 
+const loadingSpinner = document.getElementById('loading-spinner');
+const loadingText = document.getElementById('loading-text');
 
-// --- 1. Get All DOM Elements ---
+const tabImage = document.getElementById('tab-image');
+const tabVideo = document.getElementById('tab-video');
+const sectionImage = document.getElementById('section-image');
+const sectionVideo = document.getElementById('section-video');
+
+function switchTab(mode) {
+    if (mode === 'image') {
+        sectionImage.classList.remove('hidden');
+        sectionVideo.classList.add('hidden');
+        tabImage.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+        tabImage.classList.remove('text-gray-600', 'hover:bg-gray-100');
+        tabVideo.classList.remove('bg-emerald-600', 'text-white', 'shadow-sm');
+        tabVideo.classList.add('text-gray-600', 'hover:bg-gray-100');
+    } else {
+        sectionImage.classList.add('hidden');
+        sectionVideo.classList.remove('hidden');
+        tabVideo.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
+        tabVideo.classList.remove('text-gray-600', 'hover:bg-gray-100');
+        tabImage.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+        tabImage.classList.add('text-gray-600', 'hover:bg-gray-100');
+    }
+}
+
+tabImage.addEventListener('click', () => switchTab('image'));
+tabVideo.addEventListener('click', () => switchTab('video'));
+
 const imageUploader = document.getElementById('imageUploader');
 const enhanceButton = document.getElementById('enhanceButton');
 const buttonText = document.getElementById('button-text');
 const buttonSpinner = document.getElementById('button-spinner');
 
-// Main View/Loading Elements
-const loadingSpinner = document.getElementById('loading-spinner');
-const viewerArea = document.getElementById('viewer-area');
-
-// Original Image Elements
 const originalCanvas = document.getElementById('originalCanvas');
 const originalCtx = originalCanvas.getContext('2d');
 const originalMessage = document.getElementById('originalMessage');
 
-// Enhanced Image Elements (Now a single display)
 const enhancedCanvas = document.getElementById('enhancedCanvas');
 const enhancedCtx = enhancedCanvas.getContext('2d');
 const enhancedMessage = document.getElementById('enhancedMessage');
 const enhancedTitle = document.getElementById('enhanced-title');
 
-// Output Selector
 const outputSelector = document.getElementById('output-selector');
+const brightnessControls = document.getElementById('brightness-controls');
 const btn1x = document.getElementById('btn-1x');
 const btn2x = document.getElementById('btn-2x');
 const btn3x = document.getElementById('btn-3x');
+const btnBrighten = document.getElementById('btn-brighten');
+const btnDarken = document.getElementById('btn-darken');
 const outputButtons = [btn1x, btn2x, btn3x];
 
-// --- MODIFIED: Brightness Elements ---
-const brightnessControls = document.getElementById('brightness-controls');
-const btnBrighten = document.getElementById('btn-brighten');
-const btnDarken = document.getElementById('btn-darken'); // NEW
+let originalImage = null;
+let enhancedImages = { '1x': null, '2x': null, '3x': null };
+let activeEnhancedView = '1x';
+let pipeline = 'B'; 
 
-// Modal Elements
-const modal = document.getElementById('modal');
-const modalImage = document.getElementById('modalImage');
-const closeModal = document.getElementById('closeModal');
-
-// --- 2. Global State ---
-let originalImage = null; // Holds the full-res original Image() object
-let enhancedImages = {
-    '1x': null, // Will hold base64 string
-    '2x': null,
-    '3x': null
-};
-let activeEnhancedView = '1x'; // Tracks which view is active ('1x', '2x', '3x')
-let pipeline = 'B'; // Default to 'B' (Pipeline B)
-
-
-// --- 3. Load and display the original image ---
 imageUploader.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -59,17 +64,15 @@ imageUploader.addEventListener('change', (e) => {
     reader.onload = (event) => {
         originalImage = new Image();
         originalImage.onload = () => {
-            // Draw original image to its canvas
             drawToCanvas(originalCanvas, originalCtx, originalImage);
             originalMessage.style.display = 'none';
             originalCanvas.classList.add('ready');
 
-            // Reset the enhanced side
             clearEnhancedDisplay();
-            viewerArea.classList.remove('hidden'); // Show the viewer
-            outputSelector.classList.add('hidden'); // Hide buttons
-            brightnessControls.classList.add('hidden'); // Hide brightness controls
-            loadingSpinner.classList.add('hidden'); // Hide spinner
+            document.getElementById('viewer-area').classList.remove('hidden');
+            outputSelector.classList.add('hidden');
+            brightnessControls.classList.add('hidden');
+            loadingSpinner.classList.add('hidden');
 
             enhanceButton.disabled = false;
         };
@@ -78,73 +81,47 @@ imageUploader.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-
-// --- 4. Enhance image by calling the Python API (MODIFIED) ---
 enhanceButton.addEventListener('click', async () => {
     if (!originalImage) return;
-
-    // --- Set loading state ---
-    setLoadingState(true);
+    setImageLoadingState(true);
 
     try {
-        // Send the *full original* image data
-        const imageData = originalImage.src; 
-
         const response = await fetch('/enhance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image_data: imageData }),
+            body: JSON.stringify({ image_data: originalImage.src }),
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
 
-        // Check for all 4 new items
-        if (data.enhanced_1x && data.enhanced_2x && data.enhanced_3x && data.pipeline) {
-            // Store all 3 results
+        if (data.enhanced_1x && data.pipeline) {
             enhancedImages['1x'] = data.enhanced_1x;
             enhancedImages['2x'] = data.enhanced_2x;
             enhancedImages['3x'] = data.enhanced_3x;
-            
-            // Store the pipeline flag
             pipeline = data.pipeline;
             
-            // Show the standard output selector
             outputSelector.classList.remove('hidden');
-
-            // If Pipeline A, show the *new* brightness buttons
+            
             if (pipeline === 'A') {
                 brightnessControls.classList.remove('hidden');
             } else {
                 brightnessControls.classList.add('hidden');
             }
 
-            // Display the default (1x) image
             displayEnhancedImage('1x');
-
         } else {
-            throw new Error("Invalid response from server. Missing images or pipeline flag.");
+            throw new Error("Invalid response.");
         }
-
     } catch (error) {
-        console.error('Error enhancing image:', error);
-        enhancedMessage.textContent = "An error occurred during enhancement.";
+        console.error(error);
+        enhancedMessage.textContent = "Error during enhancement.";
         enhancedMessage.style.display = 'block';
     } finally {
-        // --- Reset loading state ---
-        setLoadingState(false);
+        setImageLoadingState(false);
     }
 });
 
-
-// --- 5. Helper Functions (MODIFIED) ---
-
-/**
- * Draws a given Image object onto a canvas, scaling it to MAX_DISPLAY_HEIGHT
- */
 function drawToCanvas(canvas, ctx, image) {
     let { width, height } = image;
     if (height > MAX_DISPLAY_HEIGHT) {
@@ -157,9 +134,6 @@ function drawToCanvas(canvas, ctx, image) {
     ctx.drawImage(image, 0, 0, width, height);
 }
 
-/**
- * Clears the enhanced image canvas and resets its message
- */
 function clearEnhancedDisplay() {
     enhancedCtx.clearRect(0, 0, enhancedCanvas.width, enhancedCanvas.height);
     enhancedCanvas.width = 0;
@@ -167,204 +141,168 @@ function clearEnhancedDisplay() {
     enhancedCanvas.classList.remove('ready');
     enhancedMessage.textContent = "Enhanced image will appear here";
     enhancedMessage.style.display = 'block';
-    enhancedTitle.textContent = "Enhanced";
     enhancedImages = { '1x': null, '2x': null, '3x': null };
 }
 
-/**
- * Manages the UI during processing
- */
-function setLoadingState(isLoading) {
+function setImageLoadingState(isLoading) {
     if (isLoading) {
         enhanceButton.disabled = true;
         buttonText.textContent = "Enhancing...";
         buttonSpinner.classList.remove('hidden');
-        viewerArea.classList.add('hidden'); // Hide viewer
-        loadingSpinner.classList.remove('hidden'); // Show spinner
-        outputSelector.classList.add('hidden'); // Hide buttons
-        brightnessControls.classList.add('hidden'); // Hide brightness controls
-        clearEnhancedDisplay(); // Clear old results
+        document.getElementById('viewer-area').classList.add('hidden');
+        loadingSpinner.classList.remove('hidden');
+        loadingText.textContent = "Enhancing image, please wait...";
+        outputSelector.classList.add('hidden');
+        brightnessControls.classList.add('hidden');
     } else {
         enhanceButton.disabled = false;
         buttonText.textContent = "Enhance Image";
         buttonSpinner.classList.add('hidden');
-        viewerArea.classList.remove('hidden'); // Show viewer
-        loadingSpinner.classList.add('hidden'); // Hide spinner
+        document.getElementById('viewer-area').classList.remove('hidden');
+        loadingSpinner.classList.add('hidden');
     }
 }
 
-/**
- * Loads and displays one of the 3 enhanced images
- */
-function displayEnhancedImage(level) { // level is '1x', '2x', or '3x'
-    if (!enhancedImages[level]) return; // No image data
-
+function displayEnhancedImage(level) {
+    if (!enhancedImages[level]) return;
     activeEnhancedView = level;
 
-    const enhancedImage = new Image();
-    enhancedImage.onload = () => {
-        drawToCanvas(enhancedCanvas, enhancedCtx, enhancedImage);
+    const img = new Image();
+    img.onload = () => {
+        drawToCanvas(enhancedCanvas, enhancedCtx, img);
         enhancedMessage.style.display = 'none';
         enhancedCanvas.classList.add('ready');
     };
-    enhancedImage.src = enhancedImages[level]; // Use stored base64 string
+    img.src = enhancedImages[level];
 
-    // Update title
     let passText = level === '1x' ? 'Pass' : 'Passes';
     enhancedTitle.textContent = `Enhanced (${level} ${passText})`;
-    
-    // Update active button state
-    outputButtons.forEach(btn => {
-        btn.classList.toggle('active', btn.id === `btn-${level}`);
-    });
+    if (level === '1x' && pipeline === 'A') enhancedTitle.textContent = "Enhanced (1x Pass)";
 
-    // --- MODIFIED LOGIC ---
-    // Enable/disable the brightness buttons
-    // They are only active if we are on '1x' and pipeline was 'A'
+    outputButtons.forEach(btn => btn.classList.toggle('active', btn.id === `btn-${level}`));
+    
     const isBrightenActive = (level === '1x' && pipeline === 'A');
     btnBrighten.disabled = !isBrightenActive;
-    btnDarken.disabled = !isBrightenActive; 
-
-    // Special title for 1x pass in pipeline A
-    if (isBrightenActive) {
-        enhancedTitle.textContent = `Enhanced (1x Pass)`;
-    }
+    btnDarken.disabled = !isBrightenActive;
 }
 
-// --- 6. Event Listeners for Output Buttons ---
 btn1x.addEventListener('click', () => displayEnhancedImage('1x'));
 btn2x.addEventListener('click', () => displayEnhancedImage('2x'));
 btn3x.addEventListener('click', () => displayEnhancedImage('3x'));
 
-
-// --- 7. MODIFIED: Event Listener for Brighten Button ---
-btnBrighten.addEventListener('click', async () => {
+async function applyBrightness(factorType) {
     const currentImage = enhancedImages['1x'];
     if (!currentImage) return;
 
-    // Set loading state for this button
     btnBrighten.disabled = true;
-    btnDarken.disabled = true; // Disable both
-    btnBrighten.textContent = "Applying...";
-    enhancedMessage.textContent = "Applying +25% brightness...";
+    btnDarken.disabled = true;
+    enhancedMessage.textContent = "Adjusting brightness...";
     enhancedMessage.style.display = 'block';
     enhancedCanvas.classList.remove('ready');
 
+    const endpoint = factorType === 'brighten' ? '/brighten' : '/darken';
+    
     try {
-        const response = await fetch('/brighten', {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image_data: currentImage }),
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error("Error adjusting brightness");
         const data = await response.json();
 
-        if (data.brightened_image) {
-            // SUCCESS! Overwrite the '1x' image with the new one
-            enhancedImages['1x'] = data.brightened_image;
-            // Re-display the 1x image
-            displayEnhancedImage('1x'); 
-            enhancedTitle.textContent = `Enhanced (1x Pass + Brightness)`;
-        } else {
-            throw new Error("Invalid response from /brighten");
+        const newImg = factorType === 'brighten' ? data.brightened_image : data.darkened_image;
+        
+        if (newImg) {
+            enhancedImages['1x'] = newImg;
+            displayEnhancedImage('1x');
+            const sign = factorType === 'brighten' ? '+' : '-';
+            enhancedTitle.textContent = `Enhanced (1x Pass ${sign} Brightness)`;
         }
-
     } catch (error) {
-        console.error('Error brightening image:', error);
-        enhancedMessage.textContent = "An error occurred during brightening.";
+        console.error(error);
     } finally {
-        // Re-enable button
-        btnBrighten.textContent = "Increase Brightness (+25%)";
-        // Re-run display logic to set correct button states
-        displayEnhancedImage(activeEnhancedView);
+        displayEnhancedImage('1x');
+    }
+}
+
+btnBrighten.addEventListener('click', () => applyBrightness('brighten'));
+btnDarken.addEventListener('click', () => applyBrightness('darken'));
+
+const videoUploader = document.getElementById('videoUploader');
+const enhanceVideoButton = document.getElementById('enhanceVideoButton');
+const videoResultArea = document.getElementById('video-result-area');
+const resultVideo = document.getElementById('resultVideo');
+const downloadVideoLink = document.getElementById('downloadVideoLink');
+let currentVideoFile = null;
+
+videoUploader.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        currentVideoFile = e.target.files[0];
+        enhanceVideoButton.disabled = false;
     }
 });
 
-// --- 8. NEW: Event Listener for Darken Button (CORRECTED) ---
-btnDarken.addEventListener('click', async () => {
-    const currentImage = enhancedImages['1x'];
-    if (!currentImage) return;
+enhanceVideoButton.addEventListener('click', async () => {
+    if (!currentVideoFile) return;
 
-    // Set loading state for this button
-    btnBrighten.disabled = true; // Disable both
-    btnDarken.disabled = true;
-    btnDarken.textContent = "Applying...";
-    enhancedMessage.textContent = "Applying -25% brightness...";
-    enhancedMessage.style.display = 'block';
-    enhancedCanvas.classList.remove('ready');
+    enhanceVideoButton.disabled = true;
+    enhanceVideoButton.textContent = "Processing...";
+    videoResultArea.classList.add('hidden');
+    sectionVideo.classList.add('hidden');
+    loadingSpinner.classList.remove('hidden');
+    loadingText.textContent = "Processing Video (Smart Sampling)... This may take a while.";
 
     try {
-        const response = await fetch('/darken', { // Call new endpoint
+        const formData = new FormData();
+        formData.append('file', currentVideoFile);
+
+        const response = await fetch('/enhance-video', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image_data: currentImage }),
+            body: formData
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error("Video processing failed");
         const data = await response.json();
         
-        // --- THIS IS THE CRITICAL LINE ---
-        // Check for the "darkened_image" key from app.py
-        if (data.darkened_image) { 
-            // SUCCESS! Overwrite the '1x' image with the new one
-            enhancedImages['1x'] = data.darkened_image;
-            // Re-display the 1x image
-            displayEnhancedImage('1x'); 
-            enhancedTitle.textContent = `Enhanced (1x Pass - Brightness)`;
-        } else {
-            throw new Error("Invalid response from /darken");
+        if (data.video_url) {
+            resultVideo.src = data.video_url;
+            downloadVideoLink.href = data.video_url;
+            videoResultArea.classList.remove('hidden');
         }
 
     } catch (error) {
-        console.error('Error darkening image:', error);
-        enhancedMessage.textContent = "An error occurred during darkening.";
+        console.error(error);
+        alert("Error processing video. Check console.");
     } finally {
-        // Re-enable button
-        btnDarken.textContent = "Decrease Brightness (-25%)";
-        // Re-run display logic to set correct button states
-        displayEnhancedImage(activeEnhancedView);
+        loadingSpinner.classList.add('hidden');
+        sectionVideo.classList.remove('hidden');
+        enhanceVideoButton.disabled = false;
+        enhanceVideoButton.textContent = "Process Video";
     }
 });
 
+const modal = document.getElementById('modal');
+const modalImage = document.getElementById('modalImage');
+const closeModal = document.getElementById('closeModal');
 
-// --- 9. Modal (Zoom) Logic ---
 function openModal(canvas) {
     if (!canvas.classList.contains('ready')) return;
-
-    let fullResSrc = '';
-    if (canvas.id === 'originalCanvas') {
-        fullResSrc = originalImage.src; // Use the stored full-res original
-    } else if (canvas.id === 'enhancedCanvas') {
-        // Use the stored full-res enhanced image based on the active view
-        fullResSrc = enhancedImages[activeEnhancedView];
-    }
+    let src = '';
+    if (canvas.id === 'originalCanvas') src = originalImage.src;
+    else if (canvas.id === 'enhancedCanvas') src = enhancedImages[activeEnhancedView];
     
-    if (fullResSrc) {
-        modalImage.src = fullResSrc;
+    if (src) {
+        modalImage.src = src;
         modal.classList.remove('hidden');
     }
 }
 
-// Add listeners to all canvases
 originalCanvas.addEventListener('click', () => openModal(originalCanvas));
 enhancedCanvas.addEventListener('click', () => openModal(enhancedCanvas));
 
-
-function closeModalHandler() {
-    modal.classList.add('hidden');
-    modalImage.src = "";
-}
-
-closeModal.addEventListener('click', closeModalHandler);
+closeModal.addEventListener('click', () => modal.classList.add('hidden'));
 modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-        closeModalHandler();
-    }
+    if (e.target === modal) modal.classList.add('hidden');
 });
